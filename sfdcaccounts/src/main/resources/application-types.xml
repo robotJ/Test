@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="Account" format="json">
+      <types:shape format="weave" example="examples/Account.json"><![CDATA[%dw 2.0
+type Account = {|
+  Id: String, 
+  Name: String, 
+  AccountNumber: String
+|} {"MetadataFormat": "json",
+"example": "{\"Id\":\"0016A00000JnkZJ\",\"Name\":\"Burlington Textiles Corp of America\",\"AccountNumber\":\"CD656092\"}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="IdArray" format="json">
+      <types:shape format="weave" example="examples/IdArray.json"><![CDATA[%dw 2.0
+type IdArray = Array<String> {"MetadataFormat": "json",
+"example": "[\"0016A00000JnkZJAxc\",\"0016A00000JnkZOQAZ\",\"0016A00000JnkZNQAZ\"]"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#e9a9329c-eea1-40ac-aadc-a5ac26e6a6d1"/>
+  <types:enrichment select="#765a3d43-04b0-4419-83d3-07ec6afcb294">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="Account[]"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#2d519a86-bf60-41d7-935f-e71694065da0">
+    <types:operation-declaration>
+      <types:inputs>
+        <types:parameter name="response" type="Account"/>
+      </types:inputs>
+    </types:operation-declaration>
+  </types:enrichment>
+  <types:enrichment select="#93f76ceb-67bf-4779-af36-3262222dd78b">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="IdArray"/>
+        </types:message>
+      </types:input-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

@@ -1,0 +1,125 @@
+#%RAML 1.0
+title: New API
+baseUri: 'https://mocksvc.mulesoft.com/mocks/e26e72a3-a96b-4074-859f-114f7d05aadb'
+types:
+  Account:
+    type: object
+    properties:
+      Id:
+        required: false
+        minLength: 15
+        maxLength: 18
+        example: 0016A00000JnkZJ
+        description: Account Salesforce Id
+        type: string
+      Name:
+        required: true
+        example: Burlington Textiles Corp of America
+        description: Name
+        type: string
+      AccountNumber:
+        required: false
+        example: CD656092
+        description: Account number
+        type: string
+  Response:
+    type: object
+    properties:
+      id:
+        required: false
+        minLength: 18
+        maxLength: 18
+        example: 0016A00000JnkZOQAZ
+        description: Property description
+        type: string
+      success:
+        required: false
+        example: false
+        description: Property description
+        default: false
+        type: boolean
+      errors:
+        required: false
+        description: Property description
+        type: array
+        items:
+          required: true
+          type: object
+          properties:
+            fields:
+              required: false
+              description: Property description
+              type: array
+              items:
+                required: true
+                example: Name
+                type: string
+            message:
+              required: false
+              example: Example
+              description: Property description
+              type: string
+            statusCode:
+              required: false
+              example: Example
+              description: Property description
+              type: string
+  Id:
+    minLength: 15
+    maxLength: 18
+    example: 0016A00000JnkZOQAZ
+    description: Salesforce Id
+    type: string
+/accounts:
+  get:
+    description: Gets accounts from Trailhead playgroud
+    responses:
+      '200':
+        body:
+          application/json:
+            uniqueItems: false
+            type: array
+            items:
+              required: false
+              type: Account
+  post:
+    description: Creates accounts in Trailhead playground
+    responses:
+      '200':
+        body:
+          application/json:
+            type: array
+            items:
+              required: false
+              type: Response
+    body:
+      application/json:
+        type: array
+        items:
+          required: false
+          type: Account
+  delete:
+    description: Delete accounts from Trailhead playground
+    responses:
+      '200':
+        body:
+          application/json:
+            type: array
+            items:
+              required: false
+              type: Response
+    body:
+      application/json:
+        minItems: 1
+        uniqueItems: true
+        type: array
+        items:
+          required: false
+          type: Id
+  '/{id}':
+    get:
+      responses:
+        '200':
+          body:
+            application/json:
+              type: Account

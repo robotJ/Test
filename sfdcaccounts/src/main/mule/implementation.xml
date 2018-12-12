@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="92eb5dc0-96ee-4e9e-857e-f37133f9a862" >
+		<salesforce:oauth-user-pass-connection consumerKey="3MVG9CEn_O3jvv0xaqmm9GRcN5VW2imhhpRFDWqfDTAB16iZvE4gm3VMlBy2BbszNnaLxwf..Uvm451IfbCR9" consumerSecret="5512081656542281825" username="iu@trailhead.pg" password="b#^=^N@+7" securityToken="BH8cFOYYcbuENqQQJwVtQ2Sh" />
+	</salesforce:sfdc-config>
+	
+	<error-handler name="implementationError_Handler" doc:id="f446d03c-d450-4ee1-91a8-6b8ed2a74204" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="implementationGlobalHandler" doc:id="bda40b95-7649-42a6-aec6-bed0a6fd0aca" type="MULE:ANY">
+			<set-payload value='Accounts Error handler occurred - 403' doc:name="Set Payload" doc:id="c6516627-1d60-46b0-98f5-14c31e3ca1f1" mimeType="application/json"/>
+			<set-variable value="403" doc:name="Set403" doc:id="e1b861ca-7ec6-4ac5-8589-096fb1306370" variableName="httpStatus"/>
+		</on-error-continue>
+	</error-handler>
+	
+	<flow name="getAccounts" doc:id="e695afe9-fdbb-4774-ac15-09733416dea2" >
+		<http:listener doc:name="Listener" doc:id="e24fe352-7f42-4630-8c7d-177666011dff" config-ref="sfdcaccounts-httpListenerConfig" path="/api/accounts" allowedMethods="GET" >
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="e1779228-933b-4cec-8175-162c084bbeea" message="get:\accounts:sfdcaccounts-config" />
+		<salesforce:query doc:name="Query" doc:id="5a893bfc-70fd-4134-9933-edeff54a601e" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query >select Id, Name, AccountNumber from Account limit 10</salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="7ed60a84-9e8f-41fb-9026-673ab18d0e52" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Id: payload01.Id default "",
+	Name: payload01.Name default "",
+	AccountNumber: payload01.AccountNumber
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	
+	<flow name="getAccountById" doc:id="904c575c-c8e3-433d-8533-a77ddb983609" >
+		<http:listener doc:name="Listener" doc:id="984b1040-dc22-4eb1-beac-1fc70b3e8c6c" config-ref="sfdcaccounts-httpListenerConfig" path="/api/accounts/{id}" allowedMethods="GET">
+			<http:error-response statusCode="#[vars.httpStatus]" >
+				<http:body ><![CDATA[#[payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<ee:transform doc:name="Transform Message" doc:id="2cceb389-9353-4e70-8f0b-278dffb54110" >
+			<ee:variables >
+				<ee:set-variable variableName="id" ><![CDATA[attributes.uriParams.id]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<set-variable value="#[attributes.uriParams.id]" doc:name="Set Variable" doc:id="cdead35e-aa77-43f5-82b8-a7b2de440320" variableName="accountId"/>
+		<logger level="INFO" doc:name="Logger" doc:id="e71bf533-9026-4c13-9f9c-b284cca08bda" message='get:\accounts\(id):sfdcaccounts-config | requested id: #[attributes.uriParams."id"] | accountId: #[vars.accountId]' />
+		<choice doc:name="Choice" doc:id="67b297a4-5d55-4446-a234-8f416b810fbe">
+			<when  expression="#[sizeOf(vars.accountId) == 15 or sizeOf(vars.accountId) == 18]">
+				<salesforce:query doc:name="Query" doc:id="bd0ee357-e166-4d06-b8cc-d9da3f037229" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query> #['select Id, Name, AccountNumber from Account where id = \'' ++ attributes.uriParams.id ++ '\'']</salesforce:salesforce-query>
+		</salesforce:query>
+				<ee:transform doc:name="Transform Message" doc:id="e9a9329c-eea1-40ac-aadc-a5ac26e6a6d1">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+ {
+	Id: payload[0].Id default "",
+	Name: payload[0].Name default "",
+	AccountNumber: payload[0].AccountNumber
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise>
+				<set-payload value="The account id should be either 15 or 18 symbols long" doc:name="Set Payload" doc:id="054de194-0a60-40ce-b20e-e73297120d86" mimeType="application/json" />
+				<set-variable value="400" doc:name="400" doc:id="9793d054-d489-454c-b4b8-b199b9d8e6c8" variableName="httpStatus" />
+				<raise-error doc:name="Raise error" doc:id="ace06821-3082-47cb-9e35-5dde3b43bc3e" type="ACCOUNT:BAD_REQUEST" />
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="getAccountsHandler" doc:id="a49bb68d-176b-4d08-b326-e9d4ef99c736" type="SALESFORCE:CONNECTIVITY, SALESFORCE:INVALID_REQUEST_DATA, SALESFORCE:INVALID_SESSION, SALESFORCE:INVALID_STRUCTURE_FOR_INPUT_DATA, SALESFORCE:UNKNOWN">
+				<ee:transform doc:name="Transform Message" doc:id="e05528e0-6813-427d-a5a6-eb31b1c16676">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Salesforce error occurred"}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="400" doc:name="400" doc:id="746bd7ff-d09b-41fe-8c76-d1d83c725641" variableName="httpStatus" />
+			</on-error-continue>
+
+		</error-handler>	
+	</flow>
+	<flow name="createAccount" doc:id="835b22c2-11b2-46eb-a41a-8eb41fbb96d4" >
+		<http:listener doc:name="Listener" doc:id="2d519a86-bf60-41d7-935f-e71694065da0" config-ref="sfdcaccounts-httpListenerConfig" path="/api/accounts" allowedMethods="POST" outputMimeType="application/json">
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="13871b20-ac10-46b4-beb9-18a77beda3e3" message="The request is : #[payload]" />
+		<ee:transform doc:name="Transform Message" doc:id="765a3d43-04b0-4419-83d3-07ec6afcb294" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	Id: payload01.Id,
+	Name: payload01.Name,
+	AccountNumber: payload01.AccountNumber
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:create type="Account" doc:name="Create" doc:id="0171e5db-4329-494d-b141-1a75433bd575" config-ref="Salesforce_Config">
+		</salesforce:create>
+		<ee:transform doc:name="Transform Message" doc:id="9803f8f3-e1d5-4b1d-85f0-5a476dd38cc5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	success: payload01.success,
+	id: payload01.id,
+	errors: payload01.errors map ( error , indexOfError ) -> {
+		fields: error.fields map ( field , indexOfField ) -> field,
+		message: error.message,
+		statusCode: error.statusCode
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="a125b9d8-6936-47b0-b99a-609852059b42" message="The response is #[payload]" />
+	</flow>
+	<flow name="deleteAccounts" doc:id="47c46f7b-beb9-44ed-9355-f5968ffe774e" >
+		<http:listener doc:name="Listener" doc:id="5d901682-b090-4034-8c31-645abc69fbc4" config-ref="sfdcaccounts-httpListenerConfig" path="/accounts" outputMimeType="application/json" allowedMethods="DELETE"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3957fe29-552e-48a3-9f05-2211c606818e" message="The request is: #[payload]"/>
+		<salesforce:delete-multiple doc:name="Delete multiple" doc:id="93f76ceb-67bf-4779-af36-3262222dd78b" config-ref="Salesforce_Config">
+			<salesforce:delete-ids ><![CDATA[#[output application/java
+---
+payload]]]></salesforce:delete-ids>
+		</salesforce:delete-multiple>
+		<ee:transform doc:name="Transform Message" doc:id="cec925c1-3975-4cc8-b5b6-4a2a742cc444" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+
+</mule>
